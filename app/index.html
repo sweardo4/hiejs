@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<script src="../ejs.js" charset="utf-8"></script>
+	<title>Document</title>
+</head>
+<body>
+	<input type="button" id="inputbtn" value="点击" >
+	<div id="div1"></div>
+	<script type="text/javascript">
+	+function(e){
+		var data = {
+			"title": "cleaning",
+			"supplies": ["mop", "broom", "duster"]
+		};
+		function myfunction() {
+			var html = new EJS({url:'./index.ejs'}).render(data);
+			document.getElementById("div1").innerHTML = html;
+		}
+		document.getElementById('inputbtn').addEventListener('click',myfunction,false);
+	}(window)
+	</script>
+</body>
+<html>
