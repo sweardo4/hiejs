@@ -1,8 +1,12 @@
 (function(){
     
 
-var rsplit = function(string, regex) {
-	var result = regex.exec(string),retArr = new Array(), first_idx, last_idx, first_bit;
+var rsplit = function(string, regex) { //帮助函数  按传入正则regex参数分割string存入新数组当中
+	var result = regex.exec(string),
+		retArr = new Array(),
+		first_idx, last_idx,
+		first_bit;
+
 	while (result != null)
 	{
 		first_idx = result.index; last_idx = regex.lastIndex;
@@ -31,10 +35,14 @@ extend = function(d, s){
     }
 }
 
+/*
+1 正常情况 直接传入一个options对象{url:'./example.ejs'}
+
+ */
 
 EJS = function( options ){
 	options = typeof options == "string" ? {view: options} : options
-    this.set_options(options);
+    this.set_options(options);//重新设置options //进入原型链set_options函数
 	if(options.precompiled){
 		this.template = {};
 		this.template.process = options.precompiled;
@@ -55,14 +63,14 @@ EJS = function( options ){
 		}
 		this.name = options.element.id
 		this.type = '['
-	}else if(options.url){
-        options.url = EJS.endExt(options.url, this.extMatch);
+	}else if(options.url){ //url存在执行
+        options.url = EJS.endExt(options.url, this.extMatch);//("./example.ejs",/.ejs/)  重新设置options属性url的值 添加后缀
 		this.name = this.name ? this.name : options.url;
-        var url = options.url
+        var url = options.url //获取url
         //options.view = options.absolute_url || options.view || options.;
-		var template = EJS.get(this.name /*url*/, this.cache);
+		var template = EJS.get(this.name /*url*/, this.cache);//null
 		if (template) return template;
-	    if (template == EJS.INVALID_PATH) return null;
+	    if (template == EJS.INVALID_PATH) return null;//不相等
         try{
             this.text = EJS.request( url+(this.cache ? '' : '?'+Math.random() ));
         }catch(e){}
@@ -72,9 +80,9 @@ EJS = function( options ){
 		}
 		//this.name = url;
 	}
-	var template = new EJS.Compiler(this.text, this.type);
+	var template = new EJS.Compiler(this.text, this.type);// 匹配正则
 
-	template.compile(options, this.name);
+	template.compile(options, this.name);//
 
 	
 	EJS.update(this.name, this);
@@ -126,24 +134,27 @@ EJS.prototype = {
      * @param {Object} options
      */
 	set_options : function(options){
+		//获取配置信息
         this.type = options.type || EJS.type;
 		this.cache = options.cache != null ? options.cache : EJS.cache;
 		this.text = options.text || null;
 		this.name =  options.name || null;
 		this.ext = options.ext || EJS.ext;
-		this.extMatch = new RegExp(this.ext.replace(/\./, '\.'));
+		this.extMatch = new RegExp(this.ext.replace(/\./, '\.'));//把.ejs换成/.ejs/  此时为正则表达式对象
 	}
 };
+//    添加模板后缀名ejs
 EJS.endExt = function(path, match){
 	if(!path) return null;
 	match.lastIndex = 0
-	return path+ (match.test(path) ? '' : this.ext )
+	return path+ (match.test(path) ? '' : this.ext )//此处是为了给没有后缀的文件加上ejs后缀   正则匹配ejs后缀是否存在
 }
 
 
 
 
 /* @Static*/
+//扫描 分割处理
 EJS.Scanner = function(source, left, right) {
 	
     extend(this,
@@ -154,6 +165,7 @@ EJS.Scanner = function(source, left, right) {
          left_equal: 		left+'%=',
          left_comment: 	left+'%#'})
 
+	//此正则是匹配我们规定的符号后期进行判断处理
 	this.SplitRegexp = left=='[' ? /(\[%%)|(%%\])|(\[%=)|(\[%#)|(\[%)|(%\]\n)|(%\])|(\n)/ : new RegExp('('+this.double_left+')|(%%'+this.double_right+')|('+this.left_equal+')|('+this.left_comment+')|('+this.left_delimiter+')|('+this.right_delimiter+'\n)|('+this.right_delimiter+')|(\n)') ;
 	
 	this.source = source;
@@ -172,12 +184,14 @@ EJS.Scanner.to_text = function(input){
 };
 
 EJS.Scanner.prototype = {
+
+	//block 是callback函数
   scan: function(block) {
      scanline = this.scanline;
-	 regex = this.SplitRegexp;
+	 regex = this.SplitRegexp;//--->二次分割时
 	 if (! this.source == '')
 	 {
-	 	 var source_split = rsplit(this.source, /\n/);
+	 	 var source_split = rsplit(this.source, /\n/);//首次分割模板中的字符串   按行分割
 	 	 for(var i=0; i<source_split.length; i++) {
 		 	 var item = source_split[i];
 			 this.scanline(item, regex, block);
@@ -186,12 +200,12 @@ EJS.Scanner.prototype = {
   },
   scanline: function(line, regex, block) {
 	 this.lines++;
-	 var line_split = rsplit(line, regex);
+	 var line_split = rsplit(line, regex);//再次分割  分割数组中的每行字符 按照regex(也就是this.SplitRegexp)
  	 for(var i=0; i<line_split.length; i++) {
 	   var token = line_split[i];
        if (token != null) {
 		   	try{
-	         	block(token, this);
+	         	block(token, this);//此处调用callback函数  callback函数作用是替换
 		 	}catch(e){
 				throw {type: 'EJS.Scanner', line: this.lines};
 			}
@@ -236,16 +250,16 @@ EJS.Buffer.prototype = {
  	
 };
 
-
+//核心编译代码
 EJS.Compiler = function(source, left) {
     this.pre_cmd = ['var ___ViewO = [];'];
 	this.post_cmd = new Array();
 	this.source = ' ';	
-	if (source != null)
+	if (source != null)//
 	{
-		if (typeof source == 'string')
+		if (typeof source == 'string')//string
 		{
-		    source = source.replace(/\r\n/g, "\n");
+		    source = source.replace(/\r\n/g, "\n");//把回车转换成单个换行符
             source = source.replace(/\r/g,   "\n");
 			this.source = source;
 		}else if (source.innerHTML){
@@ -399,7 +413,7 @@ EJS.Compiler.prototype = {
 	</tbody></table>
  * 
  */
-EJS.config = function(options){
+EJS.config = function(options){//配置函数
 	EJS.cache = options.cache != null ? options.cache : EJS.cache;
 	EJS.type = options.type != null ? options.type : EJS.type;
 	EJS.ext = options.ext != null ? options.ext : EJS.ext;
@@ -419,7 +433,7 @@ EJS.config = function(options){
 	
 	EJS.INVALID_PATH =  -1;
 };
-EJS.config( {cache: true, type: '<', ext: '.ejs' } );
+EJS.config( {cache: true, type: '<', ext: '.ejs' } );//调用配置函数 初始化EJS配置
 
 
 
@@ -461,27 +475,38 @@ EJS.Helpers.prototype = {
 		return '';
 	}
 };
+    //此处写法挺好 生成XHR对象  兼顾兼容性
     EJS.newRequest = function(){
-	   var factories = [function() { return new ActiveXObject("Msxml2.XMLHTTP"); },function() { return new XMLHttpRequest(); },function() { return new ActiveXObject("Microsoft.XMLHTTP"); }];
+	   var factories = [
+           function() {
+               return new ActiveXObject("Msxml2.XMLHTTP");
+           },
+           function() {
+               return new XMLHttpRequest();
+           },
+           function() {
+               return new ActiveXObject("Microsoft.XMLHTTP");
+           }
+       ];
 	   for(var i = 0; i < factories.length; i++) {
 	        try {
 	            var request = factories[i]();
-	            if (request != null)  return request;
+	            if (request != null)  return request;//直到返回真实对象后结束运行
 	        }
 	        catch(e) { continue;}
 	   }
 	}
 	
 	EJS.request = function(path){
-	   var request = new EJS.newRequest()
-	   request.open("GET", path, false);
+	   var request = new EJS.newRequest()//得到符合浏览器的XHR对象
+	   request.open("GET", path, false);//get方式打开文件
 	   
 	   try{request.send(null);}
 	   catch(e){return null;}
 	   
-	   if ( request.status == 404 || request.status == 2 ||(request.status == 0 && request.responseText == '') ) return null;
+	   if ( request.status == 404 || request.status == 2 ||(request.status == 0 && request.responseText == '') ) return null;//错误状态时返回null
 	   
-	   return request.responseText
+	   return request.responseText//返回获取到的数据'string'格式
 	}
 	EJS.ajax_request = function(params){
 		params.method = ( params.method ? params.method : 'GET')
